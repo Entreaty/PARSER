@@ -143,7 +143,7 @@ function use_abi_get_url_object($url,$user_agent)
 }
 ?>
  <?                                              /*Главный контент Архива судебных актов за 2010 год*/
-$url = 'http://kirovsky.tms.sudrf.ru/modules.php?name=docum_sud&rid=6';
+$url = 'http://kirovsky.tms.sudrf.ru/modules.php?name=docum_sud&rid=14';
 $user_agent = '';
 use_abi_get_url_object($url,$user_agent);
 
@@ -151,9 +151,10 @@ use_abi_get_url_object($url,$user_agent);
  //$array = new SplFixedArray(100000);
 preg_match_all ("@href=['\"].*?(modules.*?rid=\\d{1,})['\"].?>(.*?)<@", $CONTENT, $res);
  $testArray=array(''=>array(''=>array(''=>'')));
-$combine=array();
+$combine=array(''=>array(''));
+ $all=$getURLName=array(''=>array(''));
 $epolete = array_combine($res[1], $res[2]);         //  Создадим рабочий массив с ключами=URL и значениями=NameOfURL
- echo 'Структура запрошенной страницы (все RIDs): '.'<br>';//print_r($epolete);
+// echo 'Структура запрошенной страницы (все RIDs): '.'<br>';//print_r($epolete);
 
 foreach ($epolete as $key=>$value) {
     /*Дунем содержимое с полученной URL*/
@@ -164,18 +165,30 @@ foreach ($epolete as $key=>$value) {
     $combine = array_combine($res[1], $res[2]);
     /*Т.к. на разных страницах некоторые URL повторяются, выделим уникальные*/
     $combine = array_diff_key($combine, $epolete) ;
+    echo 'Combine массив: <br>';
+    print_r($combine);
     if(count($combine) !== 0) {
+        foreach($combine as $getURL=>$getURLName){
+        $url = 'http://kirovsky.tms.sudrf.ru/'.$getURL;$user_agent = '';
+        echo '<br>'.'Полученый при if URL: <br>'.$url;
+        use_abi_get_url_object($url,$user_agent);
+        /*Пробежимя по содержимому в поисках IDs & RIDs*/
+        preg_match_all ("@href=['\"].*?(modules.*?id=\\d{1,})['\"].?>(.*?)<@", $CONTENT, $res);
+        /*Создадим ассоциативный массив, где в ключах будет Link, а в значении NameOfLink*/
+        $all += array($getURLName=>array_combine($res[1], $res[2]));}
         /*Создадим 3-третью ступень массива в которй будут храниться */
-        $testArray += array($key => array($value => $combine));
+        $testArray += array($key => array($value => array($getURLName => $all)));
     }else{
-        $url = 'http://kirovsky.tms.sudrf.ru/'.$key;$user_agent = '';use_abi_get_url_object($url,$user_agent);
-        echo 'Полученый URL: <br>'.$url;
+        $url = 'http://kirovsky.tms.sudrf.ru/'.$key;$user_agent = '';
+        echo '<br>'.'Полученый при else  URL: <br>'.$url;
+        use_abi_get_url_object($url,$user_agent);
         /*Пробежимя по содержимому в поисках IDs & RIDs*/
         preg_match_all ("@href=['\"].*?(modules.*?id=\\d{1,})['\"].?>(.*?)<@", $CONTENT, $res);
         /*Создадим ассоциативный массив, где в ключах будет Link, а в значении NameOfLink*/
         $all = array_combine($res[1], $res[2]);
         echo 'Промежуточный массив: <br>';
-        print_r($all);
+        $testArray += array($key => array($value => $all));
+//        print_r($all);
     }
 }
 //asort($epolete, SORT_NATURAL  );
