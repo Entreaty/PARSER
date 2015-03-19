@@ -151,8 +151,8 @@ use_abi_get_url_object($url,$user_agent);
  //$array = new SplFixedArray(100000);
 preg_match_all ("@href=['\"].*?(modules.*?rid=\\d{1,})['\"].?>(.*?)<@", $CONTENT, $res);
  $testArray=array(''=>array(''=>array(''=>'')));
- $Anominal2=$nominal=$Anominal=$combine=array('false'=>array('false'=>array('false')));
- $all=$getURLName=array(''=>array(''));
+ $Anominal2=$nominal=$Anominal=$combine=array(''=>array(''=>array('')));
+ $nominal2=$all=$getURLName=array(''=>'');
 $epolete = array_combine($res[1], $res[2]);         //  Создадим рабочий массив с ключами=URL и значениями=NameOfURL
  echo 'Структура запрошенной страницы (все RIDs): '.'<br>'; print_r($epolete);
 
@@ -164,16 +164,10 @@ foreach ($epolete as $key=>$value) {
     $nominal=array_combine($nom[1], $nom[2]);                   // Сохраним URL  из ключей-адресов указанных в epolete
     $nominal = array_diff_key($nominal, $epolete) ;             // Удалим уже записанные адреса, оставив только новые
     unset($nominal['modules.php?name=docum_sud&id=822']);       // {КОСТЫЛЬ} Удаляем пустую ссылку, которую выявили в ручную
-    echo $url.'<br> Номинал :';
-    print_r($nominal);
-    $Anominal+=array($value=>$nominal);
-//     echo $value.' <br> URL: <br>'. $url = 'http://kirovsky.tms.sudrf.ru/'.$key;
-//    echo   'Номинальный массив: <br>';
-//         print_r($nominal);
-
+    $Anominal2+=array($value=>$nominal);
     foreach($nominal as $keyNominal=>$valueNominal){
-        preg_match("@modules.*?rid=\\d{1,}@", $keyNominal, $nom);
-        if($nom){$i++;
+        preg_match("@modules.*?rid=\\d{1,}@", $keyNominal, $rid);
+        if($rid){
             $url = 'http://kirovsky.tms.sudrf.ru/'.$keyNominal;$user_agent = '';use_abi_get_url_object($url,$user_agent);
 //            echo '<br>УРЛ _=_ <br>'.$url;
             /*Пробежимя по содержимому в поисках IDs*/
@@ -182,21 +176,23 @@ foreach ($epolete as $key=>$value) {
             $content = array_diff_key($content, $epolete) ;
 //            echo 'Контент массив = <BR>';
 //            print_r($content);
-            $Anominal2+=array($value=>array($valueNominal=>$content));
+            $nominal2+=array($valueNominal=>$content);
 //            $Anominal+=array($valueNominal=>$content);
 //            echo '<BR> $Anominal2 = <BR>'.$i.'<br>';
 //            print_r($Anominal2);
         }
     }
+    $Anominal+=array($value=>$nominal2);
+    $nominal2 =array(''=>'');
+}
 
 
 
 
-
-//}echo 'Аноминальный массив: <br>';
-// print_r($Anominal);
-// echo 'Аноминальный2 массив: <br>';
-// print_r($Anominal2);
+echo 'Аноминальный массив: <br>';
+ print_r($Anominal);
+ echo 'Аноминальный2 массив: <br>';
+ print_r($Anominal2);
 //asort($epolete, SORT_NATURAL  );
 // echo 'Смердженный массив: <br>';
 // print_r($testArray);
@@ -220,7 +216,7 @@ foreach ($epolete as $key=>$value) {
 //        fputs($handle,$CONTENT);
 //        fclose($handle);
 //    }
-}
+
 
 ?>
 <?php
