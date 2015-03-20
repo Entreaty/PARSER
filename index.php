@@ -154,45 +154,100 @@ preg_match_all ("@href=['\"].*?(modules.*?rid=\\d{1,})['\"].?>(.*?)<@", $CONTENT
  $Anominal2=$nominal=$Anominal=$combine=array(''=>array(''=>array('')));
  $nominal2=$all=$getURLName=array(''=>'');
 $epolete = array_combine($res[1], $res[2]);         //  Создадим рабочий массив с ключами=URL и значениями=NameOfURL
- echo 'Структура запрошенной страницы (все RIDs): '.'<br>'; print_r($epolete);
+// echo 'Структура запрошенной страницы (все RIDs): '.'<br>'; print_r($epolete);
 
 foreach ($epolete as $key=>$value) {
-    /*Дунем содержимое с полученной URL*/
-    $url = 'http://kirovsky.tms.sudrf.ru/'.$key;$user_agent = '';use_abi_get_url_object($url,$user_agent);
-    /*Пробежимя по содержимому в поисках RIDs*/
-    preg_match_all ("@href=['\"].*?(modules.*?id=\\d{1,})['\"].?>(.*?)<@", $CONTENT, $nom);
-    $nominal=array_combine($nom[1], $nom[2]);                   // Сохраним URL  из ключей-адресов указанных в epolete
-    $nominal = array_diff_key($nominal, $epolete) ;             // Удалим уже записанные адреса, оставив только новые
-    unset($nominal['modules.php?name=docum_sud&id=822']);       // {КОСТЫЛЬ} Удаляем пустую ссылку, которую выявили в ручную
-    $Anominal2+=array($value=>$nominal);
-    foreach($nominal as $keyNominal=>$valueNominal){
-        preg_match("@modules.*?rid=\\d{1,}@", $keyNominal, $rid);
-        if($rid){
-            $url = 'http://kirovsky.tms.sudrf.ru/'.$keyNominal;$user_agent = '';use_abi_get_url_object($url,$user_agent);
-//            echo '<br>УРЛ _=_ <br>'.$url;
-            /*Пробежимя по содержимому в поисках IDs*/
-            preg_match_all ("@href=['\"].*?(modules.*?id=\\d{1,})['\"].?>(.*?)<@", $CONTENT, $res);
-            $content=array_combine($res[1], $res[2]);
-            $content = array_diff_key($content, $epolete) ;
-//            echo 'Контент массив = <BR>';
-//            print_r($content);
-            $nominal2+=array($valueNominal=>$content);
-//            $Anominal+=array($valueNominal=>$content);
-//            echo '<BR> $Anominal2 = <BR>'.$i.'<br>';
-//            print_r($Anominal2);
+    if($value === 'Судебные решения по уголовным делам') {
+        $pathToFolder = 'C:\GetContentFrom\ContentFromSite\\' . $value;  // Указываем путь
+        @mkdir($pathToFolder, 0777, true);
+        /*Дунем содержимое с полученной URL*/
+        $url = 'http://kirovsky.tms.sudrf.ru/' . $key;
+        $user_agent = '';
+        use_abi_get_url_object($url, $user_agent);
+        /*Пробежимя по содержимому в поисках RIDs and IDs*/
+        preg_match_all("@href=['\"].*?(modules.*?id=\\d{1,})['\"].?>(.*?)<@", $CONTENT, $nom);
+        $nominal = array_combine($nom[1], $nom[2]);                   // Сохраним URL  из ключей-адресов указанных в epolete
+        $nominal = array_diff_key($nominal, $epolete);             // Удалим уже записанные адреса, оставив только новые
+        unset($nominal['modules.php?name=docum_sud&id=822']);       // {КОСТЫЛЬ} Удаляем пустую ссылку, которую выявили в ручную
+//        $Anominal2 += array($value => $nominal);
+        foreach ($nominal as $keyNominal => $valueNominal) {
+            $url = 'http://kirovsky.tms.sudrf.ru/' . $keyNominal;
+            $user_agent = '';
+            use_abi_get_url_object($url, $user_agent);
+            $norm = str_replace("/", "__", "$valueNominal");
+            $pathToFile = 'C:\GetContentFrom\ContentFromSite\\' . $value;  // Указываем путь
+            @$handle = fopen($pathToFile.'\\'.$norm.'.txt', "w");
+            if(is_resource($handle)){
+            flock($handle, LOCK_EX);
+            fputs($handle,$CONTENT);
+            fclose($handle);}
+            preg_match("@modules.*?rid=\\d{1,}@", $keyNominal, $rid);
+            if ($rid) {
+                /*Пробежимя по содержимому в поисках IDs*/
+                preg_match_all("@href=['\"].*?(modules.*?id=\\d{1,})['\"].?>(.*?)<@", $CONTENT, $res);
+                $cont = array_combine($res[1], $res[2]);
+                $cont = array_diff_key($cont, $epolete);
+                unset($cont['modules.php?name=docum_sud&id=822']);
+//                echo 'Контент массив = <BR>';
+//                print_r($content);
+                foreach ($cont as $contentKey => $contentValue) {
+                    preg_match("@modules.*?rid=\\d{1,}@", $contentKey, $rrid);
+                    if ($rrid) {
+                        $pathToFolder = 'C:\GetContentFrom\ContentFromSite\\' . $value . '\\' . $contentValue;  // Указываем путь
+                        @mkdir($pathToFolder, 0777, true);
+                    }
+                    preg_match("@modules.*?&id=\\d{1,}@", $contentKey, $id);
+
+                    if ($id) {
+                        $url = 'http://kirovsky.tms.sudrf.ru/' . $contentKey;
+                        $user_agent = '';
+                        use_abi_get_url_object($url, $user_agent);
+                        $pathToFile = 'C:\GetContentFrom\ContentFromSite\\' . $value . '\\' . $valueNominal;  // Указываем путь
+                        $norm2 = str_replace("/", "__", "$contentValue");
+                        @$handle = fopen($pathToFile . '\\'. $norm2.'.txt' , "w");
+                        if (is_resource($handle)) {
+                            flock($handle, LOCK_EX);
+                            fputs($handle, $CONTENT);
+                            fclose($handle);
+                        }
+                    }
+                }
+
+//                $nominal2 += array($valueNominal => $content);
+
+            }
         }
-    }
-    $Anominal+=array($value=>$nominal2);
-    $nominal2 =array(''=>'');
-}
+//        $Anominal += array($value => $nominal2);
+//        $nominal2 = array('' => '');
+    }}
+
+//foreach($Anominal as $key=>$value){
+//    var_dump($key);var_dump($value);
+//    $pathToFolder = 'C:\GetContentFrom\ContentFromSite\\'.$key;  // Указываем путь
+//        @mkdir($pathToFolder, 0777, true);                                              // Создаем папку под каждый интересующий раздел
+//        foreach($value as $keyIn=>$valueIn){
+//            $pathToFolder = 'C:\GetContentFrom\ContentFromSite\\'.$key.'\\'.$keyIn;  // Указываем путь
+//            @mkdir($pathToFolder, 0777, true);
+//            foreach($valueIn as $keyInTo=>$valueInTo){
+//                $pathToFolder = 'C:\GetContentFrom\ContentFromSite\\'.$key.'\\'.$keyIn.'\\'.$keyInTo;  // Указываем путь
+//                @mkdir($pathToFolder, 0777, true);
+//        $url = 'http://kirovsky.tms.sudrf.ru/'.$valueInTo;$user_agent = '';use_abi_get_url_object($url, $user_agent);
+//        /*Создаем файлик с контентом выбранного раздела*/
+//        @$handle = fopen($pathToFolder.'\file.txt', "w");
+//        flock($handle, LOCK_EX);
+//        fputs($handle,$CONTENT);
+//        fclose($handle);
+//
+//            }
+//
+//        }
+//   }
 
 
-
-
-echo 'Аноминальный массив: <br>';
- print_r($Anominal);
- echo 'Аноминальный2 массив: <br>';
- print_r($Anominal2);
+//echo 'Аноминальный массив: <br>';
+// print_r($Anominal);
+// echo 'Аноминальный2 массив: <br>';
+// print_r($Anominal2);
 //asort($epolete, SORT_NATURAL  );
 // echo 'Смердженный массив: <br>';
 // print_r($testArray);
